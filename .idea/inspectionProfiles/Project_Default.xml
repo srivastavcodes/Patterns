@@ -16,6 +16,7 @@
         <method importPath="io" receiver="ReadCloser" name="Close" />
       </methods>
     </inspection_tool>
+    <inspection_tool class="GoUnusedExportedFunction" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="PyPep8Inspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
       <option name="ignoredErrors">
         <list>

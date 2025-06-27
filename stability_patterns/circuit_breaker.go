@@ -1,4 +1,4 @@
-package stability_patterns
+package main
 
 import (
 	"context"
