@@ -36,6 +36,7 @@ func goroutineLeak() {
 // fixingGoroutineLeak showcases an example of a proper exiting pattern and mentions
 // the reason why.
 func fixingGoroutineLeak() {
+	// as a convention done should be the first parameter.
 	doWork := func(done <-chan struct{}, strs <-chan string) <-chan any {
 		completed := make(chan any)
 		go func() {
@@ -63,12 +64,13 @@ func fixingGoroutineLeak() {
 	completed := doWork(done, nil)
 
 	go func() {
-		time.Sleep(2 * time.Second)
 		// we close the done channel here so that the for-select loop in the
 		// above goroutine selects the done chan as available and exists out
 		// of the loop.
-		close(done)
-		fmt.Println("closed done channel")
+		time.AfterFunc(2*time.Second, func() {
+			fmt.Println("cancelling do work goroutine")
+			close(done)
+		})
 	}()
 	<-completed
 	fmt.Println("function completed; exiting...")
