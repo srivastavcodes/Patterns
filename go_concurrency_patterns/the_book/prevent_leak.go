@@ -11,6 +11,12 @@ func main() {
 	<-fixedGoroutineWriteLeak()
 }
 
+/*
+	NOTE:
+	If a goroutine is responsible for creating a goroutine, it is also
+	responsible for ensuring that it can stop the goroutine.
+*/
+
 // goroutineReadLeak showcases an example of a goroutine leak and mentions the
 // reason why.
 func goroutineReadLeak() {
