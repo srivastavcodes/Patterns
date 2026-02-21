@@ -24,6 +24,9 @@ func crawl(wid int, jobs <-chan Site, results chan<- Result) {
 		if err != nil {
 			log.Println(err.Error())
 		}
+		if resp == nil {
+			return
+		}
 		resp.Body.Close()
 		results <- Result{
 			url:        site.url,
