@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 )
 
 func main() {
-	fmt.Println("starting a goroutine with done channel")
-	fixingGoroutineLeak()
+	fmt.Println("starting a goroutine function")
+	<-fixedGoroutineWriteLeak()
 }
 
-// goroutineLeak showcases an example of a goroutine leak and mentions the
+// goroutineReadLeak showcases an example of a goroutine leak and mentions the
 // reason why.
-func goroutineLeak() {
+func goroutineReadLeak() {
 	doWork := func(strs <-chan string) <-chan any {
 		completed := make(chan any)
 		go func() {
@@ -33,9 +34,9 @@ func goroutineLeak() {
 	fmt.Println("function complete")
 }
 
-// fixingGoroutineLeak showcases an example of a proper exiting pattern and mentions
+// fixedGoroutineReadLeak showcases an example of a proper exiting pattern and mentions
 // the reason why.
-func fixingGoroutineLeak() {
+func fixedGoroutineReadLeak() {
 	// as a convention done should be the first parameter.
 	doWork := func(done <-chan struct{}, strs <-chan string) <-chan any {
 		completed := make(chan any)
@@ -75,4 +76,70 @@ func fixingGoroutineLeak() {
 	<-completed
 	fmt.Println("function completed; exiting...")
 	return
+}
+
+// goroutineWriteLeak showcases a goroutine leak that occurs when a goroutine
+// is created without a done channel and there are no reads from the channel,
+// and you attempt to write.
+func goroutineWriteLeak() {
+	makeRandStream := func() <-chan float64 {
+		randStream := make(chan float64)
+		go func() {
+			defer fmt.Println("randStream goroutine exited")
+			defer close(randStream)
+			for {
+				// if no one reads from randStream, this
+				// operation blocks.
+				randStream <- rand.Float64()
+			}
+		}()
+		return randStream
+	}
+	randStream := makeRandStream()
+
+	fmt.Println("3 random numbers:")
+	for i := 0; i < 4; i++ {
+		// reads from randStream, but stops at 4 => no reads => writing
+		// to it blocks in the makeRandStream goroutine.
+		fmt.Println(<-randStream)
+	}
+}
+
+// goroutineWriteLeak showcases a correct pattern for creating a writer goroutine.
+// Where even if there are no reads from the channel, and you attempt to write -
+// which would normally end up the goroutine getting hung up - can now exit safely
+// using a done channel.
+//
+// See: fixedGoroutineReadLeak for inner workings.
+func fixedGoroutineWriteLeak() <-chan struct{} {
+	makeRandStream := func(done <-chan struct{}) <-chan float64 {
+		randStream := make(chan float64)
+		go func() {
+			defer fmt.Println("randStream goroutine exited")
+			defer close(randStream)
+			for {
+				select {
+				case randStream <- rand.Float64():
+				case <-done:
+					return
+				}
+			}
+		}()
+		return randStream
+	}
+	exit := make(chan struct{})
+	done := make(chan struct{})
+	randStream := makeRandStream(done)
+
+	go func() {
+		time.AfterFunc(2*time.Second, func() {
+			fmt.Println("closing done channel")
+			close(done)
+			close(exit)
+		})
+	}()
+	for i := 0; i < 4; i++ {
+		fmt.Println(<-randStream)
+	}
+	return exit
 }
