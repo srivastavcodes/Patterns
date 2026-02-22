@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-func main() {
-	fmt.Println("starting a goroutine function")
-	<-fixedGoroutineWriteLeak()
-}
-
 /*
 	NOTE:
 	If a goroutine is responsible for creating a goroutine, it is also
