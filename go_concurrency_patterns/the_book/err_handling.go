@@ -137,6 +137,10 @@ func withErrorHandlingLimit() {
 	for result := range checkStatus(done, urls...) {
 		if err := result.Err; err != nil {
 			fmt.Printf("couldn't fetch url: %v\n", err)
+			// here we immediately break as soon as the error limit of 3
+			// is hit, which is a limiter the parent process can put to
+			// signal that too many errors have occurred and the process
+			// should be stopped.
 			if errCount++; errCount >= 3 {
 				fmt.Println("Too many errors, exiting!")
 				break
